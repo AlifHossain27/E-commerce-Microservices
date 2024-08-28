@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, ConfigDict, field_validator
 from datetime import datetime
+from .exceptions import EntityTooLargeException
 
 # Category Schemas
 class CategoryBase(BaseModel):
@@ -16,17 +17,29 @@ class Category(CategoryBase):
     
     model_config = ConfigDict(from_attributes=True)
 
+# Product Images
+class ProductImageBase(BaseModel):
+    image_url: str
+
+class ProductImageCreate(ProductImageBase):
+    pass
+
+class ProductImage(ProductImageBase):
+    image_id: int
+    product_id: int
+    model_config = ConfigDict(from_attributes=True)
+
 # Product Schemas
 class ProductBase(BaseModel):
     product_title: str
     product_description: str
     category_title: str
-    image: str
     price: float
     quantity: int
 
 class ProductCreate(ProductBase):
-    pass
+    images: Optional[List[ProductImageCreate]] = []
+
 
 class ProductUpdate(ProductBase):
     product_title: Optional[str]
@@ -37,6 +50,7 @@ class ProductUpdate(ProductBase):
 
 class Product(ProductBase):
     product_id: int
+    images: List[ProductImage] = []
     created_at: datetime
     updated_at: datetime
 
