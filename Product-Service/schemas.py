@@ -33,23 +33,23 @@ class ProductImage(ProductImageBase):
 class ProductBase(BaseModel):
     product_title: str
     product_description: str
-    category_title: str
     price: float
     quantity: int
 
 class ProductCreate(ProductBase):
+    category_title: str
     images: Optional[List[ProductImageCreate]] = []
 
 
 class ProductUpdate(ProductBase):
     product_title: Optional[str]
     product_description: Optional[str]
-    image: Optional[str]
     price: Optional[float]
     quantity: Optional[int]
 
 class Product(ProductBase):
     product_id: int
+    category: Category
     images: List[ProductImage] = []
     created_at: datetime
     updated_at: datetime
