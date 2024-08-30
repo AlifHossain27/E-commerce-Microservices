@@ -16,8 +16,7 @@ from ..services import (
     delete_product
 )
 from ..exceptions import (
-    ProductNotFoundException,
-    CategoryNotFoundException,
+    NotFoundException,
     EntityTooLargeException
 )
 
@@ -37,7 +36,7 @@ async def get_products_route(skip: int = 0, limit: int = 10, db: Session = Depen
 async def create_product_route(product: ProductCreate, db: Session = Depends(get_db)):
     try:
         return create_product(product, db)
-    except CategoryNotFoundException as error:
+    except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except EntityTooLargeException as error:
         raise HTTPException(status_code=422, detail=str(error))
@@ -50,7 +49,7 @@ async def create_product_route(product: ProductCreate, db: Session = Depends(get
 async def get_product_route(product_id: int, db: Session = Depends(get_db)):
     try:
         return retrieve_product_by_id(product_id=product_id, db=db)
-    except ProductNotFoundException as error:
+    except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except Exception as e:
         print(e)
@@ -61,7 +60,7 @@ async def get_product_route(product_id: int, db: Session = Depends(get_db)):
 async def update_product_route(product_id: int, product: ProductUpdate, db: Session = Depends(get_db)):
     try:
         return update_product(product_id, product, db)
-    except ProductNotFoundException as error:
+    except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except Exception as e:
         print(e)
@@ -72,7 +71,7 @@ async def update_product_route(product_id: int, product: ProductUpdate, db: Sess
 async def delete_product_route(product_id: int, db: Session = Depends(get_db)):
     try:
         return delete_product(product_id, db)
-    except ProductNotFoundException as error:
+    except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except Exception as e:
         print(e)

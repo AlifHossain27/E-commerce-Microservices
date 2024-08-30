@@ -3,12 +3,12 @@ from datetime import datetime, timezone
 from .models import Category, Product, ProductImage
 from .schemas import (CategoryCreate,
                       ProductCreate, 
-                      ProductUpdate
+                      ProductUpdate,
+                      ProductImageCreate
 )
 from .exceptions import (
-    CategoryNotFoundException,
     CategoryAlreadyTakenException, 
-    ProductNotFoundException, 
+    NotFoundException, 
     EntityTooLargeException,
     BadRequestException
 )
@@ -27,12 +27,15 @@ def retrieve_categories(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Category).offset(skip).limit(limit).all()
 
 def retrieve_category_by_name(category_name: str, db: Session):
-    return db.query(Category).filter(Category.category_title == category_name).first()
+    category = db.query(Category).filter(Category.category_title == category_name).first()
+    if category is None:
+        raise NotFoundException(f"Category with title '{category_name}' not found")
+    return category
 
 def update_category(category_id: int, updated_attributes: CategoryCreate, db: Session):
     db_category = db.query(Category).filter(Category.category_id == category_id).first()
     if db_category is None:
-        raise CategoryNotFoundException(f"Category with ID {category_id} not found")
+        raise NotFoundException(f"Category with ID {category_id} not found")
     if db_category:
         db_category.category_title = updated_attributes.category_title
         db_category.updated_at = datetime.now(tz=timezone.utc)
@@ -43,7 +46,7 @@ def update_category(category_id: int, updated_attributes: CategoryCreate, db: Se
 def delete_category(category_id: int, db: Session):
     category = db.query(Category).filter(Category.category_id == category_id).first()
     if category is None:
-        raise CategoryNotFoundException(f"Category with ID {category_id} not found")
+        raise NotFoundException(f"Category with ID {category_id} not found")
     
     products = db.query(Product).filter(Product.category_id == category_id).all()
     if products:
@@ -57,7 +60,7 @@ def delete_category(category_id: int, db: Session):
 def create_product(product: ProductCreate, db: Session):
     category = db.query(Category).filter(Category.category_title == product.category_title).first()
     if category is None:
-        raise CategoryNotFoundException(f"Category with title '{product.category_title}' not found")
+        raise NotFoundException(f"Category with title '{product.category_title}' not found")
     if len(product.images) > 5:
         raise EntityTooLargeException("You can upload a maximum of 5 images")
     # Creating a new product
@@ -85,7 +88,7 @@ def create_product(product: ProductCreate, db: Session):
 def update_product(product_id: int, updated_attributes: ProductUpdate, db: Session):
     db_product = db.query(Product).filter(Product.product_id == product_id).first()
     if db_product is None:
-        raise ProductNotFoundException(f"Product with ID {product_id} not found")
+        raise NotFoundException(f"Product with ID {product_id} not found")
     else:
         db_product.product_title = updated_attributes.product_title
         db_product.product_description = updated_attributes.product_description
@@ -105,13 +108,43 @@ def retrieve_products(db: Session, skip: int = 0, limit: int = 10):
 def retrieve_product_by_id(product_id: int, db: Session):
     product = db.query(Product).filter(Product.product_id == product_id).first()
     if product is None:
-        raise ProductNotFoundException(f"Product with ID {product_id} not found")
+        raise NotFoundException(f"Product with ID {product_id} not found")
     return product
 
 def delete_product(product_id: int, db: Session):
     product = db.query(Product).filter(Product.product_id == product_id).first()
     if product is None:
-        raise ProductNotFoundException(f"Product with ID {product_id} not found")
+        raise NotFoundException(f"Product with ID {product_id} not found")
     db.delete(product)
     db.commit()
     return {"success": True, "message": f"Product with ID {product_id} deleted successfully"}
+
+# Product Image service
+def retrieve_product_images(product_id: int, db: Session):
+    images = db.query(ProductImage).filter(ProductImage.product_id == product_id).all()
+    return images
+
+def retrieve_product_image(product_id: int, image_id:int, db: Session):
+    image = db.query(ProductImage).filter(ProductImage.product_id == product_id, ProductImage.image_id == image_id).first()
+    if image is None:
+        raise NotFoundException(f"Product image with ID {image_id} not found")
+    return image
+
+def update_product_image(product_id: int, image_id: int, updated_attributes: ProductImageCreate, db: Session):
+    db_image = db.query(ProductImage).filter(ProductImage.product_id == product_id, ProductImage.image_id == image_id).first()
+    if db_image is None:
+        raise NotFoundException(f"Product image with ID {image_id} not found")
+    db_image.image_url = updated_attributes.image_url
+
+    db.commit()
+    db.refresh(db_image)
+
+    return db_image
+
+def delete_product_image(product_id: int, image_id: int, db: Session):
+    db_image = db.query(ProductImage).filter(ProductImage.product_id == product_id, ProductImage.image_id == image_id).first()
+    if db_image is None:
+        raise NotFoundException(f"Product image with ID {image_id} not found")
+    db.delete(db_image)
+    db.commit()
+    return {"success": True, "message": f"Product Image with ID {image_id} deleted successfully"}

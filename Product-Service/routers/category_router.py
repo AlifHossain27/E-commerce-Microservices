@@ -15,7 +15,7 @@ from ..services import (
     delete_category
 )
 from ..exceptions import (
-    CategoryNotFoundException,
+    NotFoundException,
     CategoryAlreadyTakenException,
     BadRequestException
 )
@@ -36,7 +36,7 @@ async def get_categories_route(skip: int = 0, limit: int = 10, db: Session = Dep
 async def get_category_by_name_route(category_title: str, db: Session = Depends(get_db)):
     try:
         return retrieve_category_by_name(category_name=category_title, db=db)
-    except CategoryNotFoundException as error:
+    except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except Exception as e:
         print(e)
@@ -59,7 +59,7 @@ async def create_category_route(category: CategoryCreate, db: Session = Depends(
 async def update_category_route(category_id: int, category: CategoryCreate, db: Session = Depends(get_db)):
     try:
         return update_category(category_id, category, db)
-    except CategoryNotFoundException as error:
+    except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except Exception as e:
         print(e)
@@ -72,7 +72,7 @@ async def delete_category_route(category_id: int, db: Session = Depends(get_db))
     try:
         delete_category(category_id=category_id, db=db)
         return {"detail": "Category deleted successfully"}
-    except CategoryNotFoundException as error:
+    except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except BadRequestException as error:
         raise HTTPException(status_code=400, detail=str(error))
