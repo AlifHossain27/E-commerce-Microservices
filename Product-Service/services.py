@@ -18,9 +18,11 @@ def create_category(category: CategoryCreate, db: Session):
     if db.query(Category).filter(Category.category_title == category.category_title).first():
         raise CategoryAlreadyTakenException(f"Category with title '{category.category_title}' already taken")
     db_category = Category(**category.model_dump())
+
     db.add(db_category)
     db.commit()
     db.refresh(db_category)
+
     return db_category
 
 def retrieve_categories(db: Session, skip: int = 0, limit: int = 10):
@@ -36,12 +38,13 @@ def update_category(category_id: int, updated_attributes: CategoryCreate, db: Se
     db_category = db.query(Category).filter(Category.category_id == category_id).first()
     if db_category is None:
         raise NotFoundException(f"Category with ID {category_id} not found")
-    if db_category:
-        db_category.category_title = updated_attributes.category_title
-        db_category.updated_at = datetime.now(tz=timezone.utc)
-        db.commit()
-        db.refresh(db_category)
-        return db_category
+    db_category.category_title = updated_attributes.category_title
+    db_category.updated_at = datetime.now(tz=timezone.utc)
+
+    db.commit()
+    db.refresh(db_category)
+
+    return db_category
 
 def delete_category(category_id: int, db: Session):
     category = db.query(Category).filter(Category.category_id == category_id).first()
@@ -71,6 +74,7 @@ def create_product(product: ProductCreate, db: Session):
         price=product.price,
         quantity=product.quantity,
     )
+
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
@@ -83,23 +87,23 @@ def create_product(product: ProductCreate, db: Session):
         db.add(db_image)
     db.commit()
     db.refresh(db_product)
+
     return db_product
 
 def update_product(product_id: int, updated_attributes: ProductUpdate, db: Session):
     db_product = db.query(Product).filter(Product.product_id == product_id).first()
     if db_product is None:
         raise NotFoundException(f"Product with ID {product_id} not found")
-    else:
-        db_product.product_title = updated_attributes.product_title
-        db_product.product_description = updated_attributes.product_description
-        db_product.price = updated_attributes.price
-        db_product.quantity = updated_attributes.quantity
-        db_product.updated_at = datetime.now(tz=timezone.utc)
-        
-        db.commit()
-        db.refresh(db_product)
+    db_product.product_title = updated_attributes.product_title
+    db_product.product_description = updated_attributes.product_description
+    db_product.price = updated_attributes.price
+    db_product.quantity = updated_attributes.quantity
+    db_product.updated_at = datetime.now(tz=timezone.utc)
+    
+    db.commit()
+    db.refresh(db_product)
 
-        return db_product
+    return db_product
     
 def retrieve_products(db: Session, skip: int = 0, limit: int = 10):
     products = db.query(Product).offset(skip).limit(limit).all()
@@ -129,6 +133,23 @@ def retrieve_product_image(product_id: int, image_id:int, db: Session):
     if image is None:
         raise NotFoundException(f"Product image with ID {image_id} not found")
     return image
+
+def create_product_image(product_id: int, product_image: ProductImageCreate, db: Session):
+    product = db.query(Product).filter(Product.product_id == product_id).first()
+    if product is None:
+        raise NotFoundException(f"Product with ID {product_id} not found")
+    if len(product.images) == 5:
+        raise EntityTooLargeException("You can upload a maximum of 5 images")
+    db_image = ProductImage(
+        image_url = product_image.image_url,
+        product_id = product.product_id
+    )
+
+    db.add(db_image)
+    db.commit()
+    db.refresh(db_image)
+
+    return db_image
 
 def update_product_image(product_id: int, image_id: int, updated_attributes: ProductImageCreate, db: Session):
     db_image = db.query(ProductImage).filter(ProductImage.product_id == product_id, ProductImage.image_id == image_id).first()

@@ -35,7 +35,7 @@ async def get_products_route(skip: int = 0, limit: int = 10, db: Session = Depen
 @product_router.post("/product/create/", response_model=Product, status_code=201)
 async def create_product_route(product: ProductCreate, db: Session = Depends(get_db)):
     try:
-        return create_product(product, db)
+        return create_product(product=product, db=db)
     except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except EntityTooLargeException as error:
@@ -59,7 +59,7 @@ async def get_product_route(product_id: int, db: Session = Depends(get_db)):
 @product_router.patch("/product/{product_id}/", response_model=Product, status_code=200)
 async def update_product_route(product_id: int, product: ProductUpdate, db: Session = Depends(get_db)):
     try:
-        return update_product(product_id, product, db)
+        return update_product(product_id=product_id, updated_attributes=product, db=db)
     except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except Exception as e:
@@ -70,7 +70,7 @@ async def update_product_route(product_id: int, product: ProductUpdate, db: Sess
 @product_router.delete("/product/{product_id}/", status_code=204)
 async def delete_product_route(product_id: int, db: Session = Depends(get_db)):
     try:
-        return delete_product(product_id, db)
+        return delete_product(product_id=product_id, db=db)
     except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except Exception as e:

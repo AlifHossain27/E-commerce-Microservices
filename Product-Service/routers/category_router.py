@@ -47,7 +47,7 @@ async def get_category_by_name_route(category_title: str, db: Session = Depends(
 @category_router.post("/category/create/", response_model=Category, status_code=201)
 async def create_category_route(category: CategoryCreate, db: Session = Depends(get_db)):
     try:
-        return create_category(category, db)
+        return create_category(category=category, db=db)
     except CategoryAlreadyTakenException as error:
         raise HTTPException(status_code=409, detail=str(error))
     except Exception as e:
@@ -58,7 +58,7 @@ async def create_category_route(category: CategoryCreate, db: Session = Depends(
 @category_router.patch("/category/{category_id}/", response_model=Category, status_code=200)
 async def update_category_route(category_id: int, category: CategoryCreate, db: Session = Depends(get_db)):
     try:
-        return update_category(category_id, category, db)
+        return update_category(category_id=category_id, updated_attributes=category, db=db)
     except NotFoundException as error:
         raise HTTPException(status_code=404, detail=str(error))
     except Exception as e:
