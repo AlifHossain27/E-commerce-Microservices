@@ -1,7 +1,7 @@
 import traceback
 from typing import List
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from ..db import get_db
 from ..schemas import (
     Product,
@@ -17,7 +17,10 @@ from ..services import (
 )
 from ..exceptions import (
     NotFoundException,
-    EntityTooLargeException
+    EntityTooLargeException,
+    BadRequestException,
+    ConflictException,
+    InternalServerErrorException
 )
 
 product_router = APIRouter()
@@ -30,50 +33,44 @@ async def get_products_route(skip: int = 0, limit: int = 10, db: Session = Depen
     except Exception as e:
         print(e)
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise InternalServerErrorException()
 
-@product_router.post("/product/create/", response_model=Product, status_code=201)
+@product_router.post("/product/create/", response_model=Product)
 async def create_product_route(product: ProductCreate, db: Session = Depends(get_db)):
     try:
         return create_product(product=product, db=db)
-    except NotFoundException as error:
-        raise HTTPException(status_code=404, detail=str(error))
-    except EntityTooLargeException as error:
-        raise HTTPException(status_code=422, detail=str(error))
+    except (NotFoundException, EntityTooLargeException, BadRequestException, ConflictException) as error:
+        raise error
     except Exception as e:
-        print(e)
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="Internal Server Error")   
+        raise InternalServerErrorException()
 
-@product_router.get("/product/{product_id}/", response_model=Product, status_code=200)
+@product_router.get("/product/{product_id}/", response_model=Product)
 async def get_product_route(product_id: int, db: Session = Depends(get_db)):
     try:
         return retrieve_product_by_id(product_id=product_id, db=db)
     except NotFoundException as error:
-        raise HTTPException(status_code=404, detail=str(error))
+        raise error
     except Exception as e:
-        print(e)
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise InternalServerErrorException()
     
-@product_router.patch("/product/{product_id}/", response_model=Product, status_code=200)
+@product_router.patch("/product/{product_id}/", response_model=Product)
 async def update_product_route(product_id: int, product: ProductUpdate, db: Session = Depends(get_db)):
     try:
         return update_product(product_id=product_id, updated_attributes=product, db=db)
-    except NotFoundException as error:
-        raise HTTPException(status_code=404, detail=str(error))
+    except (NotFoundException, BadRequestException, ConflictException) as error:
+        raise error
     except Exception as e:
-        print(e)
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise InternalServerErrorException()
     
-@product_router.delete("/product/{product_id}/", status_code=204)
+@product_router.delete("/product/{product_id}/")
 async def delete_product_route(product_id: int, db: Session = Depends(get_db)):
     try:
         return delete_product(product_id=product_id, db=db)
-    except NotFoundException as error:
-        raise HTTPException(status_code=404, detail=str(error))
+    except (NotFoundException, BadRequestException) as error:
+        raise error
     except Exception as e:
-        print(e)
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise InternalServerErrorException()

@@ -4,19 +4,20 @@ from .models import Category, Product, ProductImage
 from .schemas import (CategoryCreate,
                       ProductCreate, 
                       ProductUpdate,
-                      ProductImageCreate
+                      ProductImageCreate,
 )
 from .exceptions import (
-    CategoryAlreadyTakenException, 
-    NotFoundException, 
+    NotFoundException,
     EntityTooLargeException,
-    BadRequestException
+    BadRequestException,
+    ConflictException,
+    InternalServerErrorException
 )
 
 # Category services
 def create_category(category: CategoryCreate, db: Session):
     if db.query(Category).filter(Category.category_title == category.category_title).first():
-        raise CategoryAlreadyTakenException(f"Category with title '{category.category_title}' already taken")
+        raise ConflictException(f"Category with title '{category.category_title}' already taken")
     db_category = Category(**category.model_dump())
 
     db.add(db_category)
@@ -38,6 +39,9 @@ def update_category(category_id: int, updated_attributes: CategoryCreate, db: Se
     db_category = db.query(Category).filter(Category.category_id == category_id).first()
     if db_category is None:
         raise NotFoundException(f"Category with ID {category_id} not found")
+    if db_category.category_title != updated_attributes.category_title:
+        if db.query(Category).filter(Category.category_title == updated_attributes.category_title).first():
+            raise ConflictException(f"Category with title '{updated_attributes.category_title}' already taken")
     db_category.category_title = updated_attributes.category_title
     db_category.updated_at = datetime.now(tz=timezone.utc)
 
@@ -66,6 +70,8 @@ def create_product(product: ProductCreate, db: Session):
         raise NotFoundException(f"Category with title '{product.category_title}' not found")
     if len(product.images) > 5:
         raise EntityTooLargeException("You can upload a maximum of 5 images")
+    if db.query(Product).filter(Product.product_title == product.product_title).first():
+        raise ConflictException(f"Product with title '{product.product_title}' already taken")
     # Creating a new product
     db_product = Product(
         product_title = product.product_title,
@@ -94,6 +100,9 @@ def update_product(product_id: int, updated_attributes: ProductUpdate, db: Sessi
     db_product = db.query(Product).filter(Product.product_id == product_id).first()
     if db_product is None:
         raise NotFoundException(f"Product with ID {product_id} not found")
+    if db_product.product_title != updated_attributes.product_title:
+        if db.query(Product).filter(Product.product_title == updated_attributes.product_title).first():
+            raise ConflictException(f"Product with title '{updated_attributes.product_title}' already taken")
     db_product.product_title = updated_attributes.product_title
     db_product.product_description = updated_attributes.product_description
     db_product.price = updated_attributes.price
@@ -119,6 +128,9 @@ def delete_product(product_id: int, db: Session):
     product = db.query(Product).filter(Product.product_id == product_id).first()
     if product is None:
         raise NotFoundException(f"Product with ID {product_id} not found")
+    image: ProductImage
+    for image in product.images:
+        delete_product_image(product_id=product.product_id, image_id=image.image_id, db=db)
     db.delete(product)
     db.commit()
     return {"success": True, "message": f"Product with ID {product_id} deleted successfully"}
