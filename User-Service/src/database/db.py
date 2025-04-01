@@ -1,5 +1,7 @@
 import os
 import dotenv
+from typing import Annotated
+from fastapi import Depends
 import sqlalchemy as _sql
 import sqlalchemy.ext.declarative as _declarative
 import sqlalchemy.orm as _orm
@@ -20,3 +22,5 @@ def get_db():
         yield db
     finally:
         db.close()
+
+DbSession = Annotated[_orm.Session, Depends(get_db)]
