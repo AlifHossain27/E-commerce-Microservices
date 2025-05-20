@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from .routers.auth_router import auth_router
 from fastapi.middleware.cors import CORSMiddleware
 from .database.db import Base, engine
 
@@ -23,3 +24,5 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
+
+app.include_router(auth_router)

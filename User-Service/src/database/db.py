@@ -1,26 +1,28 @@
-import os
-import dotenv
-from typing import Annotated
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from typing import Generator, Annotated
 from fastapi import Depends
-import sqlalchemy as _sql
-import sqlalchemy.ext.declarative as _declarative
-import sqlalchemy.orm as _orm
+from src.core.config import settings
 
-dotenv.load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
+# Engine setup
+engine = create_engine(
+    settings.DATABASE_URL,
+    connect_args={"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+)
 
-engine = _sql.create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# Session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-SessionLocal = _orm.sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Base class for models
+Base = declarative_base()
 
-Base = _declarative.declarative_base()
-
-def get_db():
-    db = None
+# Dependency to get DB session
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
     try:
-        db = SessionLocal()
         yield db
     finally:
         db.close()
 
-DbSession = Annotated[_orm.Session, Depends(get_db)]
+# Optional: for cleaner dependency injection
+DbSession = Annotated[Session, Depends(get_db)]
